@@ -1,179 +1,256 @@
-// ============================================================
-// src/controllers/task.controller.ts
-// Camada de controle: recebe a requisição, valida, chama o serviço
-// ============================================================
+// controller das tarefas
+// aqui recebo as requisicoes e chamo o service
 
-import { Request, Response, NextFunction } from "express";
-import { ZodError } from "zod";
-import { taskService } from "../services/task.service";
-import {
-  createTaskSchema,
-  updateTaskSchema,
-  taskIdSchema,
-} from "../schemas/task.schema";
-import { ApiResponse, Task } from "../types/task.types";
+import { Request, Response } from "express"
+import { ZodError } from "zod"
+import { createTaskSchema, updateTaskSchema, taskIdSchema } from "../schemas/task.schema"
+import { getAllTasks, getTaskById, createTask, updateTask, toggleTask, deleteTask } from "../services/task.service"
 
-/**
- * Função auxiliar para formatar respostas de sucesso.
- * Garante que todas as respostas seguem o mesmo padrão ApiResponse<T>.
- */
-function success<T>(res: Response, data: T, statusCode = 200): Response {
-  const response: ApiResponse<T> = { success: true, data };
-  return res.status(statusCode).json(response);
-}
-
-/**
- * Função auxiliar para formatar erros de validação Zod.
- * Extrai as mensagens de erro de cada campo e retorna array de strings.
- */
-function formatZodError(error: ZodError): string[] {
-  return error.issues.map((e) => {
-    const field = e.path.join(".") || "body";
-    return `[${field}]: ${e.message}`;
-  });
-}
-
-// -------------------------------------------------------
-// GET /tasks — Listar todas as tarefas
-// -------------------------------------------------------
-export function getAllTasks(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+// listar todas as tarefas
+export function listTasks(req: Request, res: Response) {
   try {
-    const tasks = taskService.getAll();
-    success<Task[]>(res, tasks);
-  } catch (error) {
-    next(error); // Passa para o errorHandler global
+    let tasks = getAllTasks()
+    res.status(200).json({
+      success: true,
+      data: tasks
+    })
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "erro no servidor"
+    })
   }
 }
 
-// -------------------------------------------------------
-// GET /tasks/:id — Buscar tarefa por ID
-// -------------------------------------------------------
-export function getTaskById(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+// buscar tarefa por id
+export function findTask(req: Request, res: Response) {
   try {
-    // Valida o parâmetro :id com o schema Zod
-    const { id } = taskIdSchema.parse(req.params);
-    const task = taskService.getById(id);
-    success<Task>(res, task);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json(<ApiResponse<null>>{
-        success: false,
-        errors: formatZodError(error),
-      });
-      return;
+    // validar o id
+    let validId: any
+    try {
+      validId = taskIdSchema.parse(req.params)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        let errorMessages = []
+        for (let i = 0; i < err.issues.length; i++) {
+          errorMessages.push(err.issues[i].message)
+        }
+        res.status(400).json({
+          success: false,
+          message: "id invalido",
+          errors: errorMessages
+        })
+        return
+      }
     }
-    next(error);
+
+    let task = getTaskById(validId.id)
+
+    if (task === null) {
+      res.status(404).json({
+        success: false,
+        message: "tarefa nao encontrada"
+      })
+      return
+    }
+
+    res.status(200).json({
+      success: true,
+      data: task
+    })
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "erro no servidor"
+    })
   }
 }
 
-// -------------------------------------------------------
-// POST /tasks — Criar nova tarefa
-// -------------------------------------------------------
-export function createTask(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+// criar tarefa
+export function addTask(req: Request, res: Response) {
   try {
-    // .parse() lança ZodError se a validação falhar
-    const input = createTaskSchema.parse(req.body);
-    const task = taskService.create(input);
-
-    // Status 201 Created para recursos recém-criados
-    success<Task>(res, task, 201);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json(<ApiResponse<null>>{
-        success: false,
-        message: "Dados inválidos.",
-        errors: formatZodError(error),
-      });
-      return;
+    // validar o body com zod
+    let body: any
+    try {
+      body = createTaskSchema.parse(req.body)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        let errorMessages = []
+        for (let i = 0; i < err.issues.length; i++) {
+          errorMessages.push(err.issues[i].message)
+        }
+        res.status(400).json({
+          success: false,
+          message: "dados invalidos",
+          errors: errorMessages
+        })
+        return
+      }
     }
-    next(error);
+
+    // peguei cada campo separado porque nao sei passar o objeto inteiro
+    let title = body.title
+    let description = body.description || ""  // se nao vier, usa string vazia
+    let priority = body.priority || "medium"
+
+    let task = createTask(title, description, priority)
+
+    res.status(201).json({
+      success: true,
+      data: task
+    })
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "erro ao criar tarefa"
+    })
   }
 }
 
-// -------------------------------------------------------
-// PUT /tasks/:id — Atualizar tarefa por ID
-// -------------------------------------------------------
-export function updateTask(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+// atualizar tarefa
+export function editTask(req: Request, res: Response) {
   try {
-    const { id } = taskIdSchema.parse(req.params);
-    const input = updateTaskSchema.parse(req.body);
-    const task = taskService.update(id, input);
-    success<Task>(res, task);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json(<ApiResponse<null>>{
-        success: false,
-        message: "Dados inválidos.",
-        errors: formatZodError(error),
-      });
-      return;
+    // validar id - mesma coisa do findTask, copiei aqui
+    let validId: any
+    try {
+      validId = taskIdSchema.parse(req.params)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        let errorMessages = []
+        for (let i = 0; i < err.issues.length; i++) {
+          errorMessages.push(err.issues[i].message)
+        }
+        res.status(400).json({
+          success: false,
+          message: "id invalido",
+          errors: errorMessages
+        })
+        return
+      }
     }
-    next(error);
+
+    // validar body - mesma coisa do addTask, copiei aqui
+    let body: any
+    try {
+      body = updateTaskSchema.parse(req.body)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        let errorMessages = []
+        for (let i = 0; i < err.issues.length; i++) {
+          errorMessages.push(err.issues[i].message)
+        }
+        res.status(400).json({
+          success: false,
+          message: "dados invalidos",
+          errors: errorMessages
+        })
+        return
+      }
+    }
+
+    let task = updateTask(validId.id, body.title, body.description, body.priority, body.completed)
+
+    if (task === null) {
+      res.status(404).json({
+        success: false,
+        message: "tarefa nao encontrada"
+      })
+      return
+    }
+
+    res.status(200).json({
+      success: true,
+      data: task
+    })
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "erro ao atualizar tarefa"
+    })
   }
 }
 
-// -------------------------------------------------------
-// PATCH /tasks/:id/toggle — Alternar status completed
-// -------------------------------------------------------
-export function toggleTask(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+// alternar status da tarefa
+export function toggleStatus(req: Request, res: Response) {
   try {
-    const { id } = taskIdSchema.parse(req.params);
-    const task = taskService.toggle(id);
-    success<Task>(res, task);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json(<ApiResponse<null>>{
-        success: false,
-        errors: formatZodError(error),
-      });
-      return;
+    // validar id - de novo a mesma coisa, nao sei como evitar isso
+    let validId: any
+    try {
+      validId = taskIdSchema.parse(req.params)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        let errorMessages = []
+        for (let i = 0; i < err.issues.length; i++) {
+          errorMessages.push(err.issues[i].message)
+        }
+        res.status(400).json({
+          success: false,
+          message: "id invalido",
+          errors: errorMessages
+        })
+        return
+      }
     }
-    next(error);
+
+    let task = toggleTask(validId.id)
+
+    if (task === null) {
+      res.status(404).json({
+        success: false,
+        message: "tarefa nao encontrada"
+      })
+      return
+    }
+
+    res.status(200).json({
+      success: true,
+      data: task
+    })
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "erro no servidor"
+    })
   }
 }
 
-// -------------------------------------------------------
-// DELETE /tasks/:id — Remover tarefa por ID
-// -------------------------------------------------------
-export function deleteTask(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+// deletar tarefa
+export function removeTask(req: Request, res: Response) {
   try {
-    const { id } = taskIdSchema.parse(req.params);
-    taskService.delete(id);
-
-    // Status 204 No Content: sucesso sem corpo de resposta
-    res.status(204).send();
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json(<ApiResponse<null>>{
-        success: false,
-        errors: formatZodError(error),
-      });
-      return;
+    // validar id - mais uma vez copiando o mesmo bloco
+    let validId: any
+    try {
+      validId = taskIdSchema.parse(req.params)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        let errorMessages = []
+        for (let i = 0; i < err.issues.length; i++) {
+          errorMessages.push(err.issues[i].message)
+        }
+        res.status(400).json({
+          success: false,
+          message: "id invalido",
+          errors: errorMessages
+        })
+        return
+      }
     }
-    next(error);
+
+    let deleted = deleteTask(validId.id)
+
+    if (deleted === false) {
+      res.status(404).json({
+        success: false,
+        message: "tarefa nao encontrada"
+      })
+      return
+    }
+
+    res.status(204).send()
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "erro ao deletar tarefa"
+    })
   }
 }

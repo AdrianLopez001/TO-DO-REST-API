@@ -1,64 +1,25 @@
-// ============================================================
-// src/schemas/task.schema.ts
-// Schemas Zod para validação de dados de entrada
-// ============================================================
+// validacao com zod
+// zod serve pra validar os dados que chegam no body
 
-import { z } from "zod";
+import { z } from "zod"
 
-/**
- * Schema Zod para criar uma tarefa.
- * O Zod valida o shape dos dados E os tipos ao mesmo tempo.
- *
- * z.string().min(1) → evita strings vazias
- * z.enum([...])     → aceita apenas os valores listados
- * .optional()       → campo não obrigatório
- * .default(...)     → valor padrão se não enviado
- */
+// schema pra criar tarefa
 export const createTaskSchema = z.object({
-  title: z
-    .string()
-    .min(1, "O título é obrigatório e não pode ser vazio.")
-    .max(100, "O título não pode ultrapassar 100 caracteres."),
+  title: z.string().min(1, "titulo nao pode ser vazio").max(100, "titulo muito grande"),
+  description: z.string().max(500, "descricao muito grande").optional(),
+  priority: z.string().optional()  // nao coloquei enum porque nao sei como fazer no zod v4
+})
 
-  description: z
-    .string()
-    .max(500, "A descrição não pode ultrapassar 500 caracteres.")
-    .optional(),
+// schema pra atualizar - copiei o de cima e adicionei o completed
+// acho que tem um jeito melhor mas nao sei qual
+export const updateTaskSchema = z.object({
+  title: z.string().min(1, "titulo nao pode ser vazio").max(100, "titulo muito grande").optional(),
+  description: z.string().max(500, "descricao muito grande").optional(),
+  priority: z.string().optional(),
+  completed: z.boolean().optional()
+})
 
-  priority: z
-    .enum({ low: "low", medium: "medium", high: "high" }, {
-      error: () => "Prioridade inválida. Use: low, medium ou high.",
-    })
-    .default("medium"),
-});
-
-/**
- * Schema para atualização parcial de tarefa.
- * .partial() torna todos os campos opcionais — sem sobrescrever o schema base.
- * Adicionamos o campo 'completed' que não existe no createTaskSchema.
- */
-export const updateTaskSchema = createTaskSchema
-  .partial()
-  .extend({
-    completed: z.boolean().optional(),
-  })
-  .refine(
-    (data) => Object.keys(data).length > 0,
-    { message: "Envie pelo menos um campo para atualizar." }
-  );
-
-/**
- * Schema para validar o parâmetro :id nas rotas.
- * UUID v4 tem um formato muito específico que podemos validar com regex.
- */
+// pra validar o id que vem na url
 export const taskIdSchema = z.object({
-  id: z
-    .string()
-    .uuid("O ID fornecido não é um UUID válido."),
-});
-
-// Exportamos os tipos inferidos do Zod para usar no TypeScript
-// Isso evita duplicar as definições de tipo
-export type CreateTaskInput = z.infer<typeof createTaskSchema>;
-export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
-export type TaskIdInput = z.infer<typeof taskIdSchema>;
+  id: z.string().uuid("id invalido")
+})

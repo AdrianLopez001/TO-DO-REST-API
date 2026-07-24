@@ -1,128 +1,142 @@
-// ============================================================
-// src/services/task.service.ts
-// Camada de serviço: regras de negócio + storage em memória
-// ============================================================
+// service das tarefas
+// aqui fica a logica de criar, buscar, deletar etc
 
-import { v4 as uuidv4 } from "uuid";
-import { Task, Priority } from "../types/task.types";
-import { CreateTaskInput, UpdateTaskInput } from "../schemas/task.schema";
+import { v4 as uuidv4 } from "uuid"
+import { Task } from "../types/task.types"
 
-/**
- * Classe de erro customizada para erros de negócio.
- * Isso permite distinguir erros esperados (ex: "não encontrado")
- * de erros inesperados (ex: falha de rede) no errorHandler.
- */
-export class AppError extends Error {
-  constructor(
-    public readonly message: string,
-    public readonly statusCode: number = 400
-  ) {
-    super(message);
-    this.name = "AppError";
-  }
+// array que guarda as tarefas na memoria
+// quando o servidor reiniciar perde tudo, mas tudo bem por enquanto
+let tasks: Task[] = []
+
+// buscar todas as tarefas
+export function getAllTasks() {
+  return tasks
 }
 
-/**
- * TaskService: responsável por toda a lógica de negócio de tarefas.
- *
- * Em vez de um banco de dados, usamos um array em memória.
- * Isso é suficiente para aprender os conceitos de CRUD sem
- * a complexidade de configurar um banco agora.
- *
- * Padrão Singleton: garantimos que só existe uma instância
- * do serviço (e portanto um único array de tarefas).
- */
-class TaskService {
-  // Array privado que simula o banco de dados em memória
-  private tasks: Task[] = [];
+// buscar uma tarefa pelo id
+export function getTaskById(id: string) {
+  let task = null
 
-  // -------------------------------------------------------
-  // READ: Listar todas as tarefas
-  // -------------------------------------------------------
-  getAll(): Task[] {
-    // Retorna uma cópia do array para evitar mutações externas
-    return [...this.tasks];
-  }
-
-  // -------------------------------------------------------
-  // READ: Buscar tarefa por ID
-  // -------------------------------------------------------
-  getById(id: string): Task {
-    const task = this.tasks.find((t) => t.id === id);
-
-    if (!task) {
-      // Lança nosso AppError customizado com status 404
-      throw new AppError(`Tarefa com ID "${id}" não encontrada.`, 404);
+  // percorrer o array pra achar a tarefa
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].id === id) {
+      task = tasks[i]
     }
-
-    return task;
   }
 
-  // -------------------------------------------------------
-  // CREATE: Criar nova tarefa
-  // -------------------------------------------------------
-  create(input: CreateTaskInput): Task {
-    const now = new Date();
-
-    const newTask: Task = {
-      id: uuidv4(),                              // Gera UUID único
-      title: input.title,
-      description: input.description,
-      completed: false,                          // Sempre começa incompleta
-      priority: input.priority as Priority,      // Cast seguro após validação Zod
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.tasks.push(newTask);
-    return newTask;
-  }
-
-  // -------------------------------------------------------
-  // UPDATE: Atualizar tarefa por ID (atualização parcial)
-  // -------------------------------------------------------
-  update(id: string, input: UpdateTaskInput): Task {
-    const taskIndex = this.tasks.findIndex((t) => t.id === id);
-
-    if (taskIndex === -1) {
-      throw new AppError(`Tarefa com ID "${id}" não encontrada.`, 404);
-    }
-
-    // Spread operator: mantém todos os campos existentes e sobrescreve só os enviados
-    const updatedTask: Task = {
-      ...this.tasks[taskIndex],
-      ...input,
-      priority: (input.priority ?? this.tasks[taskIndex].priority) as Priority,
-      updatedAt: new Date(), // Sempre atualiza o timestamp
-    };
-
-    this.tasks[taskIndex] = updatedTask;
-    return updatedTask;
-  }
-
-  // -------------------------------------------------------
-  // PATCH: Alternar status completed (toggle)
-  // -------------------------------------------------------
-  toggle(id: string): Task {
-    const task = this.getById(id); // Reutiliza getById (DRY principle)
-
-    return this.update(id, { completed: !task.completed });
-  }
-
-  // -------------------------------------------------------
-  // DELETE: Remover tarefa por ID
-  // -------------------------------------------------------
-  delete(id: string): void {
-    const taskIndex = this.tasks.findIndex((t) => t.id === id);
-
-    if (taskIndex === -1) {
-      throw new AppError(`Tarefa com ID "${id}" não encontrada.`, 404);
-    }
-
-    // splice remove 1 elemento a partir do índice encontrado
-    this.tasks.splice(taskIndex, 1);
-  }
+  return task  // retorna null se nao achar, trato no controller
 }
 
-// Exporta uma única instância compartilhada (Singleton)
-export const taskService = new TaskService();
+// criar uma nova tarefa
+export function createTask(title: string, description: string, priority: string) {
+  // validar prioridade aqui tambem por garantia
+  // mesmo o zod ja validando, nao custa checar de novo
+  let priorityFinal = "medium"
+  if (priority === "low") {
+    priorityFinal = "low"
+  } else if (priority === "medium") {
+    priorityFinal = "medium"
+  } else if (priority === "high") {
+    priorityFinal = "high"
+  } else {
+    priorityFinal = "medium" // se vier errado coloca medium como padrao
+  }
+
+  let newTask: Task = {
+    id: uuidv4(),
+    title: title,
+    description: description,
+    completed: false,
+    priority: priorityFinal,
+    createdAt: new Date().toISOString(),   // converti pra string aqui
+    updatedAt: new Date().toISOString()
+  }
+
+  tasks.push(newTask)
+
+  return newTask
+}
+
+// atualizar uma tarefa
+export function updateTask(id: string, title: string, description: string, priority: string, completed: boolean) {
+  let taskIndex = -1
+
+  // procurar o indice da tarefa
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].id === id) {
+      taskIndex = i
+    }
+  }
+
+  if (taskIndex === -1) {
+    return null  // nao achei a tarefa
+  }
+
+  // atualizar os campos um por um
+  // nao sei usar spread operator direito entao fiz assim
+  if (title !== undefined && title !== "") {
+    tasks[taskIndex].title = title
+  }
+  if (description !== undefined) {
+    tasks[taskIndex].description = description
+  }
+  if (priority !== undefined && priority !== "") {
+    // validar prioridade de novo
+    if (priority === "low" || priority === "medium" || priority === "high") {
+      tasks[taskIndex].priority = priority
+    }
+  }
+  if (completed !== undefined) {
+    tasks[taskIndex].completed = completed
+  }
+
+  tasks[taskIndex].updatedAt = new Date().toISOString()
+
+  return tasks[taskIndex]
+}
+
+// alternar o completed da tarefa
+export function toggleTask(id: string) {
+  let taskIndex = -1
+
+  // procurar o indice da tarefa - mesma logica do updateTask, nao sei como reaproveitar
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].id === id) {
+      taskIndex = i
+    }
+  }
+
+  if (taskIndex === -1) {
+    return null
+  }
+
+  // inverter o completed
+  if (tasks[taskIndex].completed === true) {
+    tasks[taskIndex].completed = false
+  } else {
+    tasks[taskIndex].completed = true
+  }
+
+  tasks[taskIndex].updatedAt = new Date().toISOString()
+
+  return tasks[taskIndex]
+}
+
+// deletar uma tarefa
+export function deleteTask(id: string) {
+  let taskIndex = -1
+
+  // procurar o indice - copio essa logica em todo lugar porque nao sei criar funcao auxiliar pra isso
+  for (let i = 0; i < tasks.length; i++) {
+    if (tasks[i].id === id) {
+      taskIndex = i
+    }
+  }
+
+  if (taskIndex === -1) {
+    return false  // nao achou
+  }
+
+  tasks.splice(taskIndex, 1)
+  return true  // deu certo
+}
