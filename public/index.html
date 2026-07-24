@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To-Do REST API — Guia para Iniciantes</title>
+  <meta name="description" content="Aprenda como funciona uma REST API com Node.js, TypeScript, Express e Zod de forma didática e visual." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #07080f;
+      --surface: #0e1017;
+      --surface2: #13161f;
+      --border: rgba(255,255,255,0.07);
+      --purple: #8b5cf6;
+      --purple-light: #a78bfa;
+      --blue: #3b82f6;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --pink: #ec4899;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --radius: 16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── CANVAS BACKGROUND ── */
+    #canvas-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(7,8,15,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 1rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--purple), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.3);
+      color: var(--purple-light);
+      padding: 5px 12px;
+      border-radius: 999px;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(139,92,246,0.1);
+      border: 1px solid rgba(139,92,246,0.25);
+      color: var(--purple-light);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 999px;
+      margin-bottom: 32px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .hero-tag::before { content: "●"; color: var(--green); animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, var(--purple-light) 0%, var(--cyan) 50%, var(--blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-dim);
+      max-width: 560px;
+      margin: 0 auto 48px;
+      font-weight: 400;
+      line-height: 1.7;
+    }
+    .hero-ctas {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 30px rgba(139,92,246,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(139,92,246,0.5); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      margin-top: 72px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--purple-light), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── CONTAINER ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+    .section-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--purple-light);
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .section-header p {
+      color: var(--text-dim);
+      max-width: 560px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 1px;
+      height: 80px;
+      background: linear-gradient(to bottom, transparent, var(--border), transparent);
+      margin: 0 auto;
+    }
+
+    /* ── TOOLS SECTION ── */
+    #ferramentas { padding: 80px 0; }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .tool-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+      cursor: default;
+    }
+    .tool-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--card-accent, linear-gradient(90deg, var(--purple), var(--blue)));
+    }
+    .tool-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-4px); }
+    .tool-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      background: var(--icon-bg, rgba(139,92,246,0.15));
+      border: 1px solid var(--icon-border, rgba(139,92,246,0.2));
+    }
+    .tool-name {
+      font-size: 1.125rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .tool-desc {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .tool-analogy {
+      font-size: 0.8rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+    .tool-analogy strong { color: var(--text); font-style: normal; }
+
+    /* ── OBJETIVO SECTION ── */
+    #objetivo { padding: 80px 0; }
+    .objetivo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 700px) { .objetivo-grid { grid-template-columns: 1fr; } }
+    .objetivo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .objetivo-num {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--purple-light);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+    .objetivo-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .objetivo-card p { font-size: 0.875rem; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── FLUXO SECTION ── */
+    #fluxo { padding: 80px 0; }
+    .flow-steps {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .flow-step {
+      flex: 1;
+      min-width: 150px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      text-align: center;
+      position: relative;
+    }
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      padding: 0 4px;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .flow-emoji { font-size: 2rem; margin-bottom: 12px; }
+    .flow-step h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 6px; }
+    .flow-step p { font-size: 0.75rem; color: var(--text-muted); line-height: 1.5; }
+    .flow-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+      background: rgba(139,92,246,0.1);
+      color: var(--purple-light);
+      border: 1px solid rgba(139,92,246,0.2);
+    }
+
+    /* ── CODE SECTION ── */
+    #codigo { padding: 80px 0; }
+    .code-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .tab-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .tab-btn.active {
+      background: rgba(139,92,246,0.15);
+      border-color: rgba(139,92,246,0.4);
+      color: var(--purple-light);
+    }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-block-wrapper {
+      background: #1a1d27;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+    }
+    .code-dots { display: flex; gap: 6px; }
+    .code-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #febc2e; }
+    .dot-green { background: #28c840; }
+    .code-filename {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .code-block-wrapper pre {
+      margin: 0;
+      padding: 24px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.7;
+    }
+    .code-block-wrapper code { font-family: 'JetBrains Mono', monospace !important; }
+
+    /* annotations */
+    .code-explain {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .explain-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .explain-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .explain-item h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--purple-light);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .explain-item p { font-size: 0.8rem; color: var(--text-dim); line-height: 1.5; }
+
+    /* ── ENDPOINTS SECTION ── */
+    #endpoints { padding: 80px 0; }
+    .endpoints-list { display: flex; flex-direction: column; gap: 12px; }
+    .endpoint-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: default;
+    }
+    .endpoint-item:hover { border-color: rgba(255,255,255,0.12); background: var(--surface2); }
+    .method-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 6px;
+      min-width: 70px;
+      text-align: center;
+    }
+    .method-get    { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+    .method-post   { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+    .method-put    { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .method-patch  { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.25); }
+    .method-delete { background: rgba(236,72,153,0.12); color: #f472b6; border: 1px solid rgba(236,72,153,0.25); }
+    .endpoint-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      color: var(--text);
+      flex: 1;
+    }
+    .endpoint-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    /* ── CONCEITOS SECTION ── */
+    #conceitos { padding: 80px 0; }
+    .conceitos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .conceito-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.3s;
+    }
+    .conceito-card:hover { border-color: rgba(255,255,255,0.15); }
+    .conceito-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .conceito-icon { font-size: 1.5rem; }
+    .conceito-card h3 { font-size: 1rem; font-weight: 700; }
+    .conceito-card p { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; }
+    .conceito-example {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--cyan);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--purple-light); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── ANIMATIONS ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 768px) {
+      nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      .hero-stats { gap: 32px; }
+      .flow-steps { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); margin: -4px auto; }
+      .endpoint-desc { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Canvas partículas -->
+<canvas id="canvas-bg"></canvas>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">To-Do REST API</div>
+  <ul class="nav-links">
+    <li><a href="#ferramentas">Ferramentas</a></li>
+    <li><a href="#fluxo">Como funciona</a></li>
+    <li><a href="#codigo">Código</a></li>
+    <li><a href="#endpoints">Endpoints</a></li>
+  </ul>
+  <span class="nav-badge">Etapa 1 — Backend</span>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <div class="hero-tag">Guia Didático para Iniciantes</div>
+  <h1>
+    Sua primeira<br/>
+    <span class="gradient-text">REST API</span><br/>
+    em Node.js
+  </h1>
+  <p class="hero-sub">
+    Aprenda o que é uma API, como ela funciona por dentro e quais ferramentas foram usadas para construir este projeto — tudo em português, sem jargão.
+  </p>
+  <div class="hero-ctas">
+    <a href="#objetivo" class="btn-primary">Começar a explorar →</a>
+    <a href="https://github.com/AdrianLopez001/TO-DO-REST-API" target="_blank" class="btn-secondary">Ver no GitHub</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num" data-target="6">0</div><div class="stat-label">Endpoints</div></div>
+    <div class="stat"><div class="stat-num" data-target="4">0</div><div class="stat-label">Tecnologias</div></div>
+    <div class="stat"><div class="stat-num" data-target="5">0</div><div class="stat-label">Arquivos fonte</div></div>
+    <div class="stat"><div class="stat-num" data-target="100">0</div><div class="stat-label">% TypeScript</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── OBJETIVO ── -->
+<section id="objetivo">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="section-tag">O que é isso?</div>
+      <h2>O objetivo do projeto</h2>
+      <p>Antes de ver o código, entenda o que estamos construindo — e por que cada peça existe.</p>
+    </div>
+    <div class="objetivo-grid">
+      <div class="objetivo-card fade-up">
+        <div class="objetivo-num">Conceito 01</div>
+        <h3>🌐 O que é uma API?</h3>
+        <p>API é como um <strong>garçom num restaurante</strong>. Você (o cliente) faz o pedido, ele leva até a cozinha (servidor) e traz o resultado. Você nunca entra na cozinha — só pede e recebe.</p>
+      </div>
+      <div class="objetivo-card fade-up">
+        <div class="objetivo-num">Conceito 02</div>
+        <h3>📋 O que é REST?</h3>
+        <p>REST é um conjunto de regras para que a API funcione de forma organizada. Define que usamos verbos como <strong>GET</strong> (buscar), <strong>POST</strong> (criar), <strong>PUT</strong> (atualizar) e <strong>DELETE</strong> (apagar).</p>
+      </div>
+      <div class="objetivo-card fade-up">
+        <div class="objetivo-num">Conceito 03</div>
+        <h3>📦 O que este projeto faz?</h3>
+        <p>É um sistema de lista de tarefas (To-Do). Você pode criar tarefas, listar todas, marcar como concluída ou apagar. Tudo via chamadas HTTP — como o seu aplicativo de celular faz com um servidor.</p>
+      </div>
+      <div class="objetivo-card fade-up">
+        <div class="objetivo-num">Conceito 04</div>
+        <h3>🧠 Por que estudar isso?</h3>
+        <p>Toda aplicação moderna — Instagram, iFood, Nubank — tem um backend com APIs. Aprender a construir uma é o primeiro passo para trabalhar como desenvolvedor full-stack ou backend.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── FERRAMENTAS ── -->
+<section id="ferramentas">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="section-tag">Tech Stack</div>
+      <h2>As ferramentas usadas</h2>
+      <p>Cada tecnologia tem um papel específico. Aqui está o que cada uma faz — em linguagem simples.</p>
+    </div>
+    <div class="tools-grid">
+
+      <div class="tool-card fade-up" style="--card-accent: linear-gradient(90deg, #68a063, #3c873a); --icon-bg: rgba(104,160,99,0.1); --icon-border: rgba(104,160,99,0.2);">
+        <div class="tool-icon">🟢</div>
+        <div class="tool-name">Node.js</div>
+        <div class="tool-desc">Permite rodar JavaScript fora do navegador — diretamente no servidor. É o "motor" que faz a API funcionar.</div>
+        <div class="tool-analogy"><strong>Analogia:</strong> É como instalar um motor num carro. O JavaScript seria a gasolina; o Node.js, o motor que a queima.</div>
+      </div>
+
+      <div class="tool-card fade-up" style="--card-accent: linear-gradient(90deg, #3178c6, #1e6fb8); --icon-bg: rgba(49,120,198,0.1); --icon-border: rgba(49,120,198,0.2);">
+        <div class="tool-icon">🔷</div>
+        <div class="tool-name">TypeScript</div>
+        <div class="tool-desc">É JavaScript com "regras extras". Você define o tipo de cada dado (texto, número, sim/não) e o TypeScript avisa quando algo está errado antes mesmo de rodar.</div>
+        <div class="tool-analogy"><strong>Analogia:</strong> É como escrever um formulário com campos obrigatórios. Não dá pra enviar com o nome em branco.</div>
+      </div>
+
+      <div class="tool-card fade-up" style="--card-accent: linear-gradient(90deg, #f5a623, #e09612); --icon-bg: rgba(245,166,35,0.1); --icon-border: rgba(245,166,35,0.2);">
+        <div class="tool-icon">⚡</div>
+        <div class="tool-name">Express</div>
+        <div class="tool-desc">É o framework que cria e organiza as rotas da API. Sem ele, você teria que escrever muito mais código para ouvir requisições HTTP.</div>
+        <div class="tool-analogy"><strong>Analogia:</strong> É como uma plataforma de delivery já pronta. Você só cadastra os produtos (rotas), eles cuidam da entrega.</div>
+      </div>
+
+      <div class="tool-card fade-up" style="--card-accent: linear-gradient(90deg, #8b5cf6, #6d28d9); --icon-bg: rgba(139,92,246,0.1); --icon-border: rgba(139,92,246,0.2);">
+        <div class="tool-icon">🛡️</div>
+        <div class="tool-name">Zod</div>
+        <div class="tool-desc">Valida os dados que chegam na API. Se alguém tentar criar uma tarefa sem título, o Zod rejeita com uma mensagem clara antes de qualquer coisa errada acontecer.</div>
+        <div class="tool-analogy"><strong>Analogia:</strong> É o segurança da balada. Ele verifica se você está no lista antes de deixar entrar.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── FLUXO ── -->
+<section id="fluxo">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="section-tag">Arquitetura</div>
+      <h2>Como uma requisição viaja</h2>
+      <p>Do momento que você manda uma requisição até receber a resposta, ela passa por várias camadas. Veja o caminho completo.</p>
+    </div>
+    <div class="flow-steps fade-up">
+      <div class="flow-step">
+        <div class="flow-badge">Externo</div>
+        <div class="flow-emoji">💻</div>
+        <h4>Cliente</h4>
+        <p>App, browser ou ferramenta como Insomnia envia uma requisição HTTP</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-badge">server.ts</div>
+        <div class="flow-emoji">⚡</div>
+        <h4>Express</h4>
+        <p>Recebe a requisição e descobre para qual rota ela foi</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-badge">routes/</div>
+        <div class="flow-emoji">🗺️</div>
+        <h4>Rota</h4>
+        <p>Define qual função do controller vai tratar essa requisição</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-badge">schemas/</div>
+        <div class="flow-emoji">🛡️</div>
+        <h4>Zod</h4>
+        <p>Valida os dados enviados. Se inválido, rejeita aqui mesmo</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-badge">controllers/</div>
+        <div class="flow-emoji">🎛️</div>
+        <h4>Controller</h4>
+        <p>Coordena tudo: chama o service e formata a resposta final</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-badge">services/</div>
+        <div class="flow-emoji">⚙️</div>
+        <h4>Service</h4>
+        <p>Regras de negócio e acesso aos dados (array em memória)</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-badge">Resposta</div>
+        <div class="flow-emoji">📦</div>
+        <h4>JSON</h4>
+        <p>O resultado volta para o cliente em formato JSON padronizado</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── CÓDIGO ── -->
+<section id="codigo">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="section-tag">Mergulho no código</div>
+      <h2>Linhas fundamentais explicadas</h2>
+      <p>Selecione uma parte do sistema para ver o código real e entender o que cada linha faz.</p>
+    </div>
+
+    <div class="code-tabs fade-up">
+      <button class="tab-btn active" onclick="showTab('server')">⚡ Servidor</button>
+      <button class="tab-btn" onclick="showTab('rota')">🗺️ Rotas</button>
+      <button class="tab-btn" onclick="showTab('validacao')">🛡️ Validação Zod</button>
+      <button class="tab-btn" onclick="showTab('service')">⚙️ Service</button>
+      <button class="tab-btn" onclick="showTab('controller')">🎛️ Controller</button>
+    </div>
+
+    <!-- SERVER -->
+    <div id="tab-server" class="code-panel active fade-up">
+      <div class="code-block-wrapper">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div></div>
+          <div class="code-filename">src/server.ts</div>
+          <div></div>
+        </div>
+        <pre><code class="language-typescript">import express from "express"
+import taskRoutes from "./routes/task.routes"
+import { notFoundHandler } from "./middlewares/errorHandler"
+
+const app = express()
+const PORT = 3000
+
+// middleware pra conseguir ler o json do body
+app.use(express.json())
+
+// rota inicial so pra testar se ta funcionando
+app.get("/", (req, res) => {
+  res.json({ message: "api funcionando" })
+})
+
+// rotas das tarefas
+app.use("/api/v1/tasks", taskRoutes)
+
+// rota nao encontrada - tem que ficar no final
+app.use(notFoundHandler)
+
+// subir o servidor
+app.listen(PORT, () => {
+  console.log("servidor rodando na porta " + PORT)
+})</code></pre>
+      </div>
+      <div class="code-explain">
+        <div class="explain-item">
+          <div class="explain-icon">📦</div>
+          <div>
+            <h4>import express from "express"</h4>
+            <p>Importa o Express — a biblioteca que cria o servidor HTTP. Sem essa linha, nada funciona.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🏗️</div>
+          <div>
+            <h4>const app = express()</h4>
+            <p>Cria a instância do servidor. É como abrir a porta da sua loja — a partir daqui, você configura o que acontece lá dentro.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🔧</div>
+          <div>
+            <h4>app.use(express.json())</h4>
+            <p>Ensina o servidor a ler JSON. Sem isso, o <code>req.body</code> vem vazio — você não consegue ler os dados enviados pelo cliente.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🚪</div>
+          <div>
+            <h4>app.use("/api/v1/tasks", taskRoutes)</h4>
+            <p>Conecta todas as rotas de tarefas ao prefixo <code>/api/v1/tasks</code>. Organização: separa as rotas em arquivos diferentes.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">👂</div>
+          <div>
+            <h4>app.listen(PORT, ...)</h4>
+            <p>O servidor começa a "ouvir" por requisições na porta 3000. É como ligar o rádio numa frequência específica.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROTA -->
+    <div id="tab-rota" class="code-panel fade-up">
+      <div class="code-block-wrapper">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div></div>
+          <div class="code-filename">src/routes/task.routes.ts</div>
+          <div></div>
+        </div>
+        <pre><code class="language-typescript">import { Router } from "express"
+import { listTasks, findTask, addTask,
+         editTask, toggleStatus, removeTask }
+  from "../controllers/task.controller"
+
+const router = Router()
+
+// cada linha conecta um verbo HTTP + caminho -> funcao
+router.get("/", listTasks)           // GET  /tasks
+router.get("/:id", findTask)         // GET  /tasks/:id
+router.post("/", addTask)            // POST /tasks
+router.put("/:id", editTask)         // PUT  /tasks/:id
+router.patch("/:id/toggle", toggleStatus) // PATCH /tasks/:id/toggle
+router.delete("/:id", removeTask)    // DELETE /tasks/:id
+
+export default router</code></pre>
+      </div>
+      <div class="code-explain">
+        <div class="explain-item">
+          <div class="explain-icon">🗺️</div>
+          <div>
+            <h4>Router()</h4>
+            <p>Cria um "mini-app" apenas para as rotas de tarefas. Assim você pode importar e montar em qualquer prefixo no server.ts.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🔍</div>
+          <div>
+            <h4>router.get("/:id", findTask)</h4>
+            <p>O <code>:id</code> é um parâmetro dinâmico. Se você chamar <code>/tasks/abc123</code>, o valor <code>abc123</code> fica em <code>req.params.id</code>.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">📮</div>
+          <div>
+            <h4>Verbos HTTP (GET, POST, PUT...)</h4>
+            <p>Cada verbo tem um significado: GET = buscar dados, POST = criar novo, PUT = substituir, PATCH = atualizar parte, DELETE = apagar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VALIDAÇÃO -->
+    <div id="tab-validacao" class="code-panel fade-up">
+      <div class="code-block-wrapper">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div></div>
+          <div class="code-filename">src/schemas/task.schema.ts</div>
+          <div></div>
+        </div>
+        <pre><code class="language-typescript">import { z } from "zod"
+
+// define como os dados precisam chegar para criar uma tarefa
+export const createTaskSchema = z.object({
+
+  title: z.string()
+    .min(1, "titulo nao pode ser vazio")
+    .max(100, "titulo muito grande"),
+
+  description: z.string()
+    .max(500, "descricao muito grande")
+    .optional(),    // campo nao obrigatorio
+
+  priority: z.string().optional()
+
+})
+
+// --- quando usamos ---
+// const body = createTaskSchema.parse(req.body)
+// se os dados forem invalidos, o Zod lanca um erro automaticamente
+// com a mensagem que a gente escreveu acima</code></pre>
+      </div>
+      <div class="code-explain">
+        <div class="explain-item">
+          <div class="explain-icon">📐</div>
+          <div>
+            <h4>z.object({...})</h4>
+            <p>Define o "molde" dos dados esperados. É como um formulário: cada campo tem regras sobre o que é aceito.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">📏</div>
+          <div>
+            <h4>.min(1) e .max(100)</h4>
+            <p>Define limites de tamanho para textos. <code>.min(1)</code> garante que o campo não está vazio. <code>.max(100)</code> evita textos enormes.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">❓</div>
+          <div>
+            <h4>.optional()</h4>
+            <p>Torna o campo não obrigatório. Sem isso, se o cliente não enviar o campo, o Zod retorna erro automaticamente.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🚀</div>
+          <div>
+            <h4>.parse(req.body)</h4>
+            <p>Executa a validação. Se os dados estiverem certos, retorna os dados limpos. Se não, lança um erro com a mensagem personalizada.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVICE -->
+    <div id="tab-service" class="code-panel fade-up">
+      <div class="code-block-wrapper">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div></div>
+          <div class="code-filename">src/services/task.service.ts</div>
+          <div></div>
+        </div>
+        <pre><code class="language-typescript">import { v4 as uuidv4 } from "uuid"
+import { Task } from "../types/task.types"
+
+// array que guarda as tarefas na memoria
+// quando o servidor reiniciar perde tudo, mas tudo bem por enquanto
+let tasks: Task[] = []
+
+// criar uma nova tarefa
+export function createTask(title: string,
+                           description: string,
+                           priority: string) {
+  let newTask: Task = {
+    id: uuidv4(),          // gera um id unico automatico
+    title: title,
+    description: description,
+    completed: false,       // sempre começa false
+    priority: priority,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+
+  tasks.push(newTask)   // adiciona no array
+  return newTask        // retorna a tarefa criada
+}</code></pre>
+      </div>
+      <div class="code-explain">
+        <div class="explain-item">
+          <div class="explain-icon">🗄️</div>
+          <div>
+            <h4>let tasks: Task[] = []</h4>
+            <p>O "banco de dados" da aplicação por enquanto. Um array simples em memória. Perde tudo quando o servidor reinicia — mas é ótimo para aprender.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🎲</div>
+          <div>
+            <h4>uuidv4()</h4>
+            <p>Gera um ID único aleatório tipo <code>a4b2c...</code>. UUID = Universally Unique Identifier. Garante que nunca haverá dois iguais.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">📅</div>
+          <div>
+            <h4>new Date().toISOString()</h4>
+            <p>Captura o momento exato de criação e converte para o formato internacional de data: <code>2024-01-15T10:30:00.000Z</code>.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">➕</div>
+          <div>
+            <h4>tasks.push(newTask)</h4>
+            <p>Adiciona a nova tarefa ao final do array — como empurrar um papel para o fim de uma pilha. Depois disso, ela aparece no GET de todas as tarefas.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLLER -->
+    <div id="tab-controller" class="code-panel fade-up">
+      <div class="code-block-wrapper">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot dot-red"></div><div class="code-dot dot-yellow"></div><div class="code-dot dot-green"></div></div>
+          <div class="code-filename">src/controllers/task.controller.ts</div>
+          <div></div>
+        </div>
+        <pre><code class="language-typescript">import { Request, Response } from "express"
+import { ZodError } from "zod"
+import { createTaskSchema } from "../schemas/task.schema"
+import { createTask } from "../services/task.service"
+
+export function addTask(req: Request, res: Response) {
+  try {
+    // 1) validar o body com zod
+    let body: any
+    try {
+      body = createTaskSchema.parse(req.body)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        let errorMessages = []
+        for (let i = 0; i < err.issues.length; i++) {
+          errorMessages.push(err.issues[i].message)
+        }
+        res.status(400).json({
+          success: false,
+          message: "dados invalidos",
+          errors: errorMessages
+        })
+        return  // para a execucao aqui
+      }
+    }
+
+    // 2) criar a tarefa no service
+    let task = createTask(body.title, body.description, body.priority)
+
+    // 3) responder com 201 (criado com sucesso)
+    res.status(201).json({ success: true, data: task })
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: "erro no servidor" })
+  }
+}</code></pre>
+      </div>
+      <div class="code-explain">
+        <div class="explain-item">
+          <div class="explain-icon">📥</div>
+          <div>
+            <h4>Request e Response</h4>
+            <p><code>req</code> = o que chegou do cliente (body, params, headers). <code>res</code> = o que você vai responder. Sempre trabalhamos com esses dois.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🔒</div>
+          <div>
+            <h4>try/catch</h4>
+            <p>Protege o código de travamentos. Se algo der errado dentro do <code>try</code>, o <code>catch</code> captura e manda uma resposta de erro em vez de travar o servidor.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">🔢</div>
+          <div>
+            <h4>res.status(201)</h4>
+            <p>HTTP status codes: 200 = OK, 201 = Criado, 400 = Dados inválidos, 404 = Não encontrado, 500 = Erro interno. São a "linguagem" do HTTP.</p>
+          </div>
+        </div>
+        <div class="explain-item">
+          <div class="explain-icon">↩️</div>
+          <div>
+            <h4>return (após res.json)</h4>
+            <p>Para a execução da função após enviar a resposta de erro. Sem o <code>return</code>, o código continuaria executando e tentaria enviar duas respostas — causando um crash.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── ENDPOINTS ── -->
+<section id="endpoints">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="section-tag">Referência</div>
+      <h2>Todos os endpoints</h2>
+      <p>Acesse <code style="background:rgba(255,255,255,0.07);padding:2px 8px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:0.85em;">http://localhost:3000</code> para usar a API.</p>
+    </div>
+    <div class="endpoints-list fade-up">
+      <div class="endpoint-item">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/tasks</span>
+        <span class="endpoint-desc">Retorna a lista completa de tarefas</span>
+      </div>
+      <div class="endpoint-item">
+        <span class="method-badge method-get">GET</span>
+        <span class="endpoint-path">/api/v1/tasks/:id</span>
+        <span class="endpoint-desc">Busca uma tarefa específica pelo ID</span>
+      </div>
+      <div class="endpoint-item">
+        <span class="method-badge method-post">POST</span>
+        <span class="endpoint-path">/api/v1/tasks</span>
+        <span class="endpoint-desc">Cria uma nova tarefa (title obrigatório)</span>
+      </div>
+      <div class="endpoint-item">
+        <span class="method-badge method-put">PUT</span>
+        <span class="endpoint-path">/api/v1/tasks/:id</span>
+        <span class="endpoint-desc">Atualiza os dados de uma tarefa existente</span>
+      </div>
+      <div class="endpoint-item">
+        <span class="method-badge method-patch">PATCH</span>
+        <span class="endpoint-path">/api/v1/tasks/:id/toggle</span>
+        <span class="endpoint-desc">Marca como concluída / pendente (toggle)</span>
+      </div>
+      <div class="endpoint-item">
+        <span class="method-badge method-delete">DELETE</span>
+        <span class="endpoint-path">/api/v1/tasks/:id</span>
+        <span class="endpoint-desc">Remove permanentemente uma tarefa</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── CONCEITOS ── -->
+<section id="conceitos">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="section-tag">Dicionário</div>
+      <h2>Termos que você precisa conhecer</h2>
+      <p>Palavras que aparecem todo dia no mundo backend — explicadas de forma simples.</p>
+    </div>
+    <div class="conceitos-grid">
+      <div class="conceito-card fade-up">
+        <div class="conceito-header"><div class="conceito-icon">🏗️</div><h3>Interface (TypeScript)</h3></div>
+        <p>Define o "formato" de um objeto. É como uma planta de apartamento: diz quais cômodos (campos) ele tem e de que tipo são.</p>
+        <div class="conceito-example">interface Task { id: string; title: string }</div>
+      </div>
+      <div class="conceito-card fade-up">
+        <div class="conceito-header"><div class="conceito-icon">🔄</div><h3>CRUD</h3></div>
+        <p>Sigla para as 4 operações básicas de qualquer sistema: <strong>C</strong>reate, <strong>R</strong>ead, <strong>U</strong>pdate, <strong>D</strong>elete. Todo sistema de dados precisa dessas 4.</p>
+        <div class="conceito-example">POST / GET / PUT / DELETE</div>
+      </div>
+      <div class="conceito-card fade-up">
+        <div class="conceito-header"><div class="conceito-icon">📨</div><h3>Middleware</h3></div>
+        <p>Código que roda entre a requisição chegar e a resposta sair. O <code>express.json()</code> é um middleware — ele "traduz" o body antes do seu código vê-lo.</p>
+        <div class="conceito-example">app.use(express.json())</div>
+      </div>
+      <div class="conceito-card fade-up">
+        <div class="conceito-header"><div class="conceito-icon">🎁</div><h3>JSON</h3></div>
+        <p>Formato de texto para trocar dados entre sistemas. É como uma embalagem padronizada — qualquer linguagem consegue abrir e ler.</p>
+        <div class="conceito-example">{"success": true, "data": [...]}</div>
+      </div>
+      <div class="conceito-card fade-up">
+        <div class="conceito-header"><div class="conceito-icon">🔢</div><h3>Status Code HTTP</h3></div>
+        <p>Número que indica o resultado de uma requisição. 200 = sucesso, 201 = criado, 400 = erro do cliente, 404 = não encontrado, 500 = erro do servidor.</p>
+        <div class="conceito-example">res.status(201).json({...})</div>
+      </div>
+      <div class="conceito-card fade-up">
+        <div class="conceito-header"><div class="conceito-icon">🎲</div><h3>UUID</h3></div>
+        <p>ID único gerado automaticamente. Garante que cada tarefa tem um identificador impossível de repetir — mesmo que você crie milhões de tarefas.</p>
+        <div class="conceito-example">id: "a4f2b1c3-d5e6-..."</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>Construído por <a href="https://github.com/AdrianLopez001" target="_blank">Adrian Lopez</a> · Etapa 1 do plano de estudos Backend · <a href="https://github.com/AdrianLopez001/TO-DO-REST-API" target="_blank">Ver no GitHub →</a></p>
+</footer>
+
+<script>
+  // ── Syntax Highlighting ──
+  document.addEventListener("DOMContentLoaded", () => { hljs.highlightAll(); });
+
+  // ── Tabs ──
+  function showTab(id) {
+    document.querySelectorAll(".code-panel").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("tab-" + id).classList.add("active");
+    event.target.classList.add("active");
+    // re-highlight
+    document.querySelectorAll("#tab-" + id + " code").forEach(el => hljs.highlightElement(el));
+  }
+
+  // ── Fade-up on scroll ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add("visible"), i * 80);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll(".fade-up").forEach(el => observer.observe(el));
+
+  // ── Counter animation ──
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.target);
+    const suffix = el.dataset.target.includes("%") ? "%" : (target === 100 ? "%" : "+");
+    let current = 0;
+    const step = Math.ceil(target / 40);
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = current + (target > 10 ? "+" : "");
+      if (current >= target) { el.textContent = target + (el.closest(".stat").querySelector(".stat-label").textContent === "% TypeScript" ? "%" : "+"); clearInterval(timer); }
+    }, 30);
+  }
+  const statObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll("[data-target]").forEach(animateCounter);
+        statObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  const statsEl = document.querySelector(".hero-stats");
+  if (statsEl) statObserver.observe(statsEl);
+
+  // ── Canvas Particles ──
+  const canvas = document.getElementById("canvas-bg");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  window.addEventListener("resize", () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+  const particles = Array.from({length: 60}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 1.5 + 0.3,
+    vx: (Math.random() - 0.5) * 0.3,
+    vy: (Math.random() - 0.5) * 0.3,
+    alpha: Math.random() * 0.4 + 0.1
+  }));
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(139,92,246,${p.alpha})`;
+      ctx.fill();
+    });
+    // draw lines between close particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(139,92,246,${0.06 * (1 - dist/120)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+</script>
+</body>
+</html>

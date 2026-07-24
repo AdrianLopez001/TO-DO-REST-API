@@ -2,6 +2,7 @@
 // aqui configuro o express e subo o servidor
 
 import express from "express"
+import path from "path"
 import taskRoutes from "./routes/task.routes"
 import { notFoundHandler } from "./middlewares/errorHandler"
 
@@ -10,6 +11,9 @@ const PORT = 3000  // coloquei fixo por enquanto, nao sei usar .env ainda
 
 // middleware pra conseguir ler o json do body
 app.use(express.json())
+
+// servir a pagina de documentacao
+app.use(express.static(path.join(__dirname, "../public")))
 
 // rota inicial so pra testar se ta funcionando
 app.get("/", (req, res) => {
